@@ -37,8 +37,8 @@ private slots:
 
 private:
     Ui::MainWindow *ui;
-    JsonHighlighter *highlighter;
-    JsonModel *model;
+    JsonHighlighter highlighter;
+    JsonModel model;
 
     void expandAll(const QModelIndex &index);
     void collapseAll(const QModelIndex &index);
