@@ -11,6 +11,7 @@ struct Node {
     QString text;
     QList<Node*> children;
     Node* parent;
+    Node(QString text) : text(text) {}
 };
 
 
@@ -38,10 +39,12 @@ public:
     QModelIndex rootIndex() const;
     void createTree(const QJsonValue &value, const QJsonValue &key, const QModelIndex &parent = QModelIndex());
     bool hasElement(const QModelIndex &parentIndex, const QString &elementText);
+    void clear();
 
 private:
-    QList<Node*> m_rootNodes;
+    Node* root;
     Node* getNode(const QModelIndex &index) const;
+    void deleteNode(Node* node);
 };
 
 #endif // JSONMODEL_H
