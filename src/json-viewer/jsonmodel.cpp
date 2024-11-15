@@ -1,17 +1,19 @@
 #include "jsonmodel.h"
 
-JsonModel::JsonModel(QObject *parent) : QAbstractItemModel(parent) {}
+JsonModel::JsonModel(QObject *parent) : QAbstractItemModel(parent) {
+    root = nullptr;
+}
 
 void JsonModel::addItem(const QString &text, const QModelIndex &parent) {
-    auto node = new Node{text, {}};
+    auto node = new Node{text};
     if (parent.isValid()) {
         auto parentNode = getNode(parent);
         parentNode->children.append(node);
         node->parent = parentNode;
     }
     else {
-        m_rootNodes.append(node);
-        node->parent = nullptr;
+        root = node;
+        root->parent = nullptr;
     }
 
     beginInsertRows(parent, rowCount(parent), rowCount(parent));
@@ -28,19 +30,16 @@ void JsonModel::addItem(const QString &text, const QModelIndex &parent) {
 
 QModelIndex JsonModel::index(int row, int column, const QModelIndex &parent) const {
     if (column != 0) return QModelIndex();
-
     if (!parent.isValid()) {
-        if (row >= 0 && row < m_rootNodes.size()) {
-            return createIndex(row, 0, m_rootNodes.at(row));
+        if (row == 0 && root != nullptr) {
+            return createIndex(row, 0, root);
         }
-    }
-    else {
+    } else {
         auto parentNode = getNode(parent);
         if (row >= 0 && row < parentNode->children.size()) {
             return createIndex(row, 0, parentNode->children.at(row));
         }
     }
-
     return QModelIndex();
 }
 
@@ -61,16 +60,12 @@ QModelIndex JsonModel::parent(const QModelIndex &child) const {
 
 int JsonModel::rowCount(const QModelIndex &parent) const {
     if (!parent.isValid()) {
-        return m_rootNodes.size();
+        return root ? 1 : 0;
     }
-
     auto parentNode = getNode(parent);
-    if (parentNode) {
-        return parentNode->children.size();
-    }
-
-    return 0;
+    return parentNode ? parentNode->children.size() : 0;
 }
+
 
 int JsonModel::columnCount(const QModelIndex &) const {
     return 1;
@@ -199,6 +194,20 @@ bool JsonModel::hasElement(const QModelIndex &parentIndex, const QString &elemen
 
     return false;
 
+}
+
+void JsonModel::deleteNode(Node* node) {
+    for (auto child : node->children) {
+        deleteNode(child);
+    }
+    delete node;
+}
+
+void JsonModel::clear() {
+    deleteNode(root);
+    root = nullptr;
+    beginResetModel();
+    endResetModel();
 }
 
 
