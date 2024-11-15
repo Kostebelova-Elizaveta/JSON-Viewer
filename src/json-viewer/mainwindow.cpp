@@ -16,13 +16,10 @@ MainWindow::MainWindow(QWidget *parent)
     ui->updateButton->setIcon(QIcon(IMAGE_UPDATE_FILE_PATH));
     ui->updateButton->setIconSize(QSize(16, 16));
 
-    model = new JsonModel;
-    highlighter = new JsonHighlighter(ui->jsonTextEdit->document());
+    highlighter.setDocument(ui->jsonTextEdit->document());
 }
 
 MainWindow::~MainWindow() {
-    delete highlighter;
-    delete model;
     delete ui;
     Logger::log(DEBUG, "MainWindow is closed");
 }
@@ -50,17 +47,19 @@ void MainWindow::on_openButton_clicked() {
         }
         ui->jsonTextEdit->setPlainText(jsonString);
         Logger::log(INFO, "Text from file is loaded");
-        delete model;
-        model = new JsonModel;
+        if (model.rootIndex().isValid()) {
+            model.clear();
+        }
+
         if (jsonDoc.isArray()) {
-            model->createTree(jsonDoc.array(), jsonDoc.array(), model->rootIndex());
+            model.createTree(jsonDoc.array(), jsonDoc.array(), model.rootIndex());
         }
         else {
             if (jsonDoc.isObject()) {
-                model->createTree(jsonDoc.object(), jsonDoc.object(), model->rootIndex());
+                model.createTree(jsonDoc.object(), jsonDoc.object(), model.rootIndex());
             }
         }
-        ui->jsonTreeView->setModel(model);
+        ui->jsonTreeView->setModel(&model);
         Logger::log(INFO, "Tree is built");
         ui->showButton->setIcon(QIcon(IMAGE_EXPAND_FILE_PATH));
         ui->showButton->setText("Expand all");
@@ -80,17 +79,18 @@ void MainWindow::on_updateButton_clicked() {
         Logger::log(ERROR, "Invalid JSON format");
         return;
     }
-    delete model;
-    model = new JsonModel;
+    if (model.rootIndex().isValid()) {
+        model.clear();
+    }
     if (jsonDoc.isArray()) {
-        model->createTree(jsonDoc.array(), jsonDoc.array());
+        model.createTree(jsonDoc.array(), jsonDoc.array());
     }
     else {
         if (jsonDoc.isObject()) {
-            model->createTree(jsonDoc.object(), jsonDoc.object());
+            model.createTree(jsonDoc.object(), jsonDoc.object());
         }
     }
-    ui->jsonTreeView->setModel(model);
+    ui->jsonTreeView->setModel(&model);
     Logger::log(INFO, "Tree is built");
     ui->showButton->setIcon(QIcon(IMAGE_EXPAND_FILE_PATH));
     ui->showButton->setText("Expand all");
@@ -152,7 +152,7 @@ void MainWindow::collapseAll(const QModelIndex &index) {
 
 void MainWindow::on_showButton_clicked() {
     Logger::log(DEBUG, "Expand/Collapse button clicked");
-    if (model && model->rowCount() != 0) {
+    if (model.rowCount() != 0) {
         if (ui->showButton->text() == "Expand all") {
             for (int i = 0; i <= ui->jsonTreeView->model()->columnCount(); i++) {
                 expandAll(ui->jsonTreeView->model()->index(0, i));
